@@ -14,7 +14,7 @@ class AegisMindApp extends StatefulWidget {
 class _AegisMindAppState extends State<AegisMindApp> {
   @override
   Widget build(BuildContext context) {
-    final loggedIn = AuthService.currentSession != null;
+    final loggedIn = AuthService.currentUser != null;
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

@@ -1,78 +1,93 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
-import '../core/constants/app_constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile.dart';
 
 class AuthService {
-  static final _supabase = Supabase.instance.client;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static String get apiBaseUrl {
-    if (kIsWeb) return AppConstants.apiBaseUrlWeb;
-    return AppConstants.apiBaseUrlAndroid;
-  }
+  static User? get currentUser => _auth.currentUser;
+  static Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  static Session? get currentSession => _supabase.auth.currentSession;
-
-  static User? get currentUser => _supabase.auth.currentUser;
-
-  static Future<void> login({
+  // Login
+  static Future<Map<String, dynamic>?> login({
     required String email,
     required String password,
   }) async {
-    await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final doc = await _db.collection('users').doc(cred.user!.uid).get();
+      return doc.data();
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
+  // Signup
   static Future<void> signup({
     required String email,
     required String password,
     required String name,
+    String role = 'parent',
   }) async {
-    await _supabase.auth.signUp(
-      email: email,
-      password: password,
-      data: {'name': name},
-    );
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await _db.collection('users').doc(cred.user!.uid).set({
+        'email': email,
+        'fullName': name,
+        'role': role,
+        'parentId': null,
+        'childrenIds': [],
+        'isActive': true,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'profileImageUrl': null,
+        'stats': {
+          'analyzedPrompts': 0,
+          'blockedThreats': 0,
+          'allowedPrompts': 0,
+          'hesitateCases': 0,
+        },
+      });
+    } on FirebaseAuthException catch (e) {
+      throw Exception(e.message);
+    }
   }
 
-  static Future<void> logout() async {
-    await _supabase.auth.signOut();
-  }
+  // Logout
+  static Future<void> logout() async => await _auth.signOut();
 
+  // Fetch profile for ProfileScreen
   static Future<UserProfile?> fetchProfile() async {
-    final session = currentSession;
-    if (session == null) return null;
+    if (currentUser == null) return null;
+    final doc = await _db.collection('users').doc(currentUser!.uid).get();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+    return UserProfile.fromMap(data);
+  }
 
-    final response = await http.get(
-      Uri.parse('$apiBaseUrl/profile'),
-      headers: {
-        'Authorization': 'Bearer ${session.accessToken}',
-      },
-    );
+  // Update stats after each analysis
+  static Future<void> updateStats(String decision) async {
+    if (currentUser == null) return;
+    final ref = _db.collection('users').doc(currentUser!.uid);
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to fetch profile');
+    final Map<String, dynamic> updates = {
+      'stats.analyzedPrompts': FieldValue.increment(1),
+    };
+
+    if (decision == 'BLOCK') {
+      updates['stats.blockedThreats'] = FieldValue.increment(1);
+    } else if (decision == 'ALLOW') {
+      updates['stats.allowedPrompts'] = FieldValue.increment(1);
+    } else if (decision == 'HESITATE') {
+      updates['stats.hesitateCases'] = FieldValue.increment(1);
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
-  }
-
-  static Future<void> updateStats(String decision) async {
-    final session = currentSession;
-    if (session == null) return;
-
-    await http.post(
-      Uri.parse('$apiBaseUrl/update-stats'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${session.accessToken}',
-      },
-      body: jsonEncode({'decision': decision}),
-    );
+    await ref.update(updates);
   }
 }

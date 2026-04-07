@@ -1,3 +1,30 @@
+class UserProfile {
+  final String name;
+  final String email;
+  final String role;
+  final String? joinDate;
+  final UserStats? stats;
+
+  UserProfile({
+    required this.name,
+    required this.email,
+    required this.role,
+    this.joinDate,
+    this.stats,
+  });
+
+  factory UserProfile.fromMap(Map<String, dynamic> data) {
+    final statsData = data['stats'] as Map<String, dynamic>?;
+    return UserProfile(
+      name: data['fullName'] ?? '',
+      email: data['email'] ?? '',
+      role: data['role'] ?? 'parent',
+      joinDate: data['createdAt']?.toString(),
+      stats: statsData != null ? UserStats.fromMap(statsData) : null,
+    );
+  }
+}
+
 class UserStats {
   final int analyzedPrompts;
   final int blockedThreats;
@@ -11,43 +38,12 @@ class UserStats {
     required this.hesitateCases,
   });
 
-  factory UserStats.fromJson(Map<String, dynamic> json) {
+  factory UserStats.fromMap(Map<String, dynamic> data) {
     return UserStats(
-      analyzedPrompts: json['analyzedPrompts'] ?? 0,
-      blockedThreats: json['blockedThreats'] ?? 0,
-      allowedPrompts: json['allowedPrompts'] ?? 0,
-      hesitateCases: json['hesitateCases'] ?? 0,
-    );
-  }
-}
-
-class UserProfile {
-  final String id;
-  final String email;
-  final String name;
-  final String role;
-  final String? joinDate;
-  final UserStats? stats;
-
-  UserProfile({
-    required this.id,
-    required this.email,
-    required this.name,
-    required this.role,
-    this.joinDate,
-    this.stats,
-  });
-
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      id: json['id'] ?? '',
-      email: json['email'] ?? '',
-      name: json['name'] ?? '',
-      role: json['role'] ?? 'user',
-      joinDate: json['joinDate'],
-      stats: json['stats'] != null
-          ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
-          : null,
+      analyzedPrompts: data['analyzedPrompts'] ?? 0,
+      blockedThreats: data['blockedThreats'] ?? 0,
+      allowedPrompts: data['allowedPrompts'] ?? 0,
+      hesitateCases: data['hesitateCases'] ?? 0,
     );
   }
 }
