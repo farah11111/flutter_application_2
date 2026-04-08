@@ -5,7 +5,7 @@ import '../models/analysis_models.dart';
 class AnalysisService {
   static const String baseUrl = 'http://10.0.2.2:5000';
   // For Windows desktop testing, replace with:
-  // static const String baseUrl = 'http://localhost:5000/api/analyze';
+  // static const String baseUrl = 'http://127.0.0.1:5000';
 
   static Future<AnalysisResultModel> analyzePrompt(String prompt) async {
     final response = await http
