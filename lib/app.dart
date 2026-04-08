@@ -1,197 +1,23 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
-import 'services/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'services/auth_provider.dart' as ap;
+import 'screens/auth_wrapper.dart';
+import 'utils/app_theme.dart';
 
-class AegisMindApp extends StatefulWidget {
+class AegisMindApp extends StatelessWidget {
   const AegisMindApp({super.key});
 
   @override
-  State<AegisMindApp> createState() => _AegisMindAppState();
-}
-
-class _AegisMindAppState extends State<AegisMindApp> {
-  @override
   Widget build(BuildContext context) {
-    final loggedIn = AuthService.currentUser != null;
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'AegisMind',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF090E1A),
-        fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.cyan,
-          brightness: Brightness.dark,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0E1422),
-          elevation: 0,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        cardTheme: CardTheme(
-          color: const Color(0xFF1B2233),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: Colors.cyanAccent.withOpacity(0.15),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF111827),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.cyanAccent.withOpacity(0.25),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.15),
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: Colors.cyanAccent,
-              width: 1.4,
-            ),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0EA5E9),
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-      ),
-      home: MainShell(
-        loggedIn: loggedIn,
-        onAuthChanged: () {
-          setState(() {});
-        },
-      ),
-    );
-  }
-}
-
-class MainShell extends StatelessWidget {
-  final bool loggedIn;
-  final VoidCallback onAuthChanged;
-
-  const MainShell({
-    super.key,
-    required this.loggedIn,
-    required this.onAuthChanged,
-  });
-
-  Future<void> openLogin(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
-
-    if (result == true) {
-      onAuthChanged();
-    }
-  }
-
-  Future<void> openProfile(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-    );
-
-    if (result == true) {
-      onAuthChanged();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: const [
-            Icon(Icons.shield_outlined, color: Colors.cyanAccent),
-            SizedBox(width: 10),
-            Text('AegisMind'),
-          ],
-        ),
-        actions: [
-          if (loggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: IconButton(
-                onPressed: () => openProfile(context),
-                icon: const Icon(Icons.person),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: TextButton(
-                onPressed: () => openLogin(context),
-                child: const Text('Login'),
-              ),
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          const AppBackground(),
-          Column(
-            children: [
-              const Expanded(child: HomeScreen()),
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0E1422).withOpacity(0.92),
-                  border: Border(
-                    top: BorderSide(color: Colors.white.withOpacity(0.08)),
-                  ),
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      'AegisMind – Graduation Project',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'AI Safety & Prompt Defense System',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ap.AuthProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'AegisMind',
+        theme: AppTheme.darkTheme,
+        home: const AuthWrapper(),
       ),
     );
   }
